@@ -1,12 +1,17 @@
 {
-  "name": "goita-ai-sample-js",
+  "name": "goita-ai-sample",
   "version": "0.0.1",
   "description": "goita-ai-sample-js",
   "license": "MIT",
-  "repository": "",
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Goita/goita-ai-sample-js"
+
+  },
+  "author": "yoskeoka",
   "keywords": [
-    ""
+    "goita",
+    "ai"
   ],
   "files": [
     "lib"
