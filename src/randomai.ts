@@ -7,9 +7,8 @@ export class RandomAI implements Goita.AI {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-  public chooseMove(boardHistory: string): Goita.Move {
-    const board = Goita.Board.createFromString(boardHistory);
-    const moves = board.getPossibleMoves();
+  public chooseMove(info: Goita.ThinkingInfo): Goita.Move {
+    const moves = info.getPossibleMoves();
     if (moves.length === 0) {
       return moves[0];
     }
@@ -17,15 +16,13 @@ export class RandomAI implements Goita.AI {
     return moves[i];
   }
 
-  public evalMoves(boardHistory: string): Goita.EvaluatedMove[] {
-    const board = Goita.Board.createFromString(boardHistory);
+  public evalMoves(info: Goita.ThinkingInfo): Goita.EvaluatedMove[] {
     const result = new Array<Goita.EvaluatedMove>();
-    const moves = board.getPossibleMoves();
+    const moves = info.getPossibleMoves();
     for (const move of moves){
-      const evaluated = new Goita.EvaluatedMove();
       // give some random value
-      evaluated.score = RandomAI.getRandomIntegerBetween(0, moves.length - 1);
-      evaluated.move = move;
+      const score = RandomAI.getRandomIntegerBetween(0, moves.length - 1);
+      const evaluated = new Goita.EvaluatedMove(move, score);
       result.push(evaluated);
     }
     return result;
