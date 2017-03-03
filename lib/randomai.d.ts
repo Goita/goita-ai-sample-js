@@ -3,4 +3,5 @@ export declare class RandomAI implements Goita.AI {
     private static getRandomIntegerBetween(min, max);
     chooseMove(info: Goita.ThinkingInfo): Goita.Move;
     evalMoves(info: Goita.ThinkingInfo): Goita.EvaluatedMove[];
+    continueGoshi(info: Goita.ThinkingInfo): boolean;
 }

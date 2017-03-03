@@ -27,4 +27,8 @@ export class RandomAI implements Goita.AI {
     }
     return result;
   }
+
+  public continueGoshi(info: Goita.ThinkingInfo): boolean {
+    return false;
+  }
 };
