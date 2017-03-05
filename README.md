@@ -10,7 +10,7 @@ import { RandomAI } from "goita-ai-sample";
 const history = "12345678,12345679,11112345,11112345,s1,113,2p,3p,431,1p,2p,315";
 const board = Goita.Board.createFromString(history);
 const ai = new RandomAI();
-const chosenMove = ai.chooseMove(history);
+const chosenMove = ai.chooseMove(board.toThinkingInfo());
 
 board.playMove(chosenMove);
 

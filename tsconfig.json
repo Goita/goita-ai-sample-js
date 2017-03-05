@@ -5,6 +5,8 @@
     "moduleResolution": "node",
     "noImplicitAny": true,
     "outDir": "./lib",
+    "sourceMap": true,
+    "newLine": "LF",
     "preserveConstEnums": true,
     "removeComments": true,
     "target": "es5",

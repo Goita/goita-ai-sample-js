@@ -38,3 +38,6 @@ lib
 
 # mocha temp directory
 tmp
+
+# webpack output directory
+build
