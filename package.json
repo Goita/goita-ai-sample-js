@@ -21,10 +21,11 @@
   "scripts": {
     "clean": "rimraf lib",
     "lint": "tslint --force --format verbose \"src/**/*.ts\"",
-    "build": "npm run clean && npm run lint && echo Using TypeScript && tsc --version && tsc --pretty && tsc -p .",
+    "build": "npm run clean && npm run lint && echo Using TypeScript && tsc --version && tsc --pretty && tsc -p . && npm run webpack",
     "test": "npm run build && mocha --compilers ts:ts-node/register --recursive test/**/*-spec.ts",
     "watch": "npm run build -- --watch",
-    "watch:test": "npm run test -- --watch"
+    "watch:test": "npm run test -- --watch",
+    "webpack": "./node_modules/.bin/webpack"
   },
   "dependencies": {
     "goita-core": "^0.1.0"
