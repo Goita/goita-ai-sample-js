@@ -18,7 +18,17 @@ describe("SimpleLogic", () => {
             const info = b.toThinkingInfo();
             const ret = SimpleLogic.fillUnknownKoma(info);
             // [6]{1}.{7},[63]{2}.{6},[13]{2},{6},11112345,s1,1.6,263,331
-            expect(ret).match(/.{1}[6]{1}.{6},[63]{2}.{6},[31]{2}.{6},11112345,s1,1.6,263,331/);
+            expect(ret).match(/^.{8},.{8},.{8},11112345,s1,1.6,263,331$/);
+        });
+
+        it("should fill at ending", () => {
+            const h = "12345678,12345679,11112345,11112345,s1,116,263,331,411,1p,2p,3p,411,1p,2p,311,4p,1p,217,3p,4p,175";
+            const b = goita.Board.createFromString(h);
+            const info = b.toThinkingInfo();
+            const ret = SimpleLogic.fillUnknownKoma(info);
+            expect(ret).match(/^.{8},.{8},.{8},.{8},s1,1.6,263,331,411,1p,2p,3p,4.1,1p,2p,311,4p,1p,217,3p,4p,175$/);
+            // create board to validate the guessed history
+            expect(goita.Board.createFromString.bind(null, ret)).not.to.throw();
         });
     });
     // getDiffKomaList

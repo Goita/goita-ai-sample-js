@@ -56,6 +56,9 @@ export class Util {
         for (let i = 0; i < len; i++) {
             let sum: number = 0;
             for (const list of scoreLists) {
+                if (list.length !== len) {
+                    throw new Error("all of list's length must be the same");
+                }
                 sum += list[i];
             }
             result[i] = sum / itemCount;
@@ -76,7 +79,11 @@ export class Util {
         const averagedScores = Util.averageScores(lists);
         for (let i = 0; i < evalLists[0].length; i++) {
             ret[i] = evalLists[0][i];
-            ret[i].score = averagedScores[i];
+            const v = averagedScores[i];
+            if (isNaN(v)) {
+                throw new Error("averaged socre is NaN");
+            }
+            ret[i].score = v;
         }
         return ret;
     }

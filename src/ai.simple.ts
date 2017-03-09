@@ -4,6 +4,7 @@ import { SimpleLogic, Stage } from "./ai.simple.logic";
 export class SimpleAI implements goita.AI {
 
     public searchLimit: number = 10000;
+    public monteCarloAttempts: number = 20;
 
     public chooseMove(info: goita.ThinkingInfo): goita.Move {
         const moves = this.evalMoves(info);
@@ -28,7 +29,13 @@ export class SimpleAI implements goita.AI {
                 result = SimpleLogic.evalMoves(moves, info, SimpleLogic.evalMiddleMove);
                 break;
             case Stage.ending:
-                result = SimpleLogic.evalEndingMoves(info, 10, this.searchLimit);
+                try {
+                    result = SimpleLogic.evalEndingMoves(info, this.monteCarloAttempts, this.searchLimit);
+                } catch (e) {
+                    // fallback
+                    result = SimpleLogic.evalMoves(moves, info, SimpleLogic.evalMiddleMove);
+                }
+
                 break;
             default:
                 throw new Error("cannot detect stage");

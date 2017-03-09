@@ -95,7 +95,7 @@ export class SimpleLogic {
 
         // winning move
         if (!move.pass && myHand.length <= 2) {
-            return new goita.EvaluatedMove(move, move.attack.Score);
+            return new goita.EvaluatedMove(move, move.attack.score);
         }
 
         // partner's attack?
@@ -190,15 +190,162 @@ export class SimpleLogic {
      * eval moves for ending stage, using Monte Carlo method and perfect search
      */
     public static evalEndingMoves(info: goita.ThinkingInfo, attempt: number, searchLimit: number): goita.EvaluatedMove[] {
-        const h = SimpleLogic.fillUnknownKoma(info);
+
         const lists = new Array<goita.EvaluatedMove[]>();
         const solver = new goita.Solver();
         let evaledMoves: goita.EvaluatedMove[];
         for (let i = 0; i < attempt; i++) {
+            const h = SimpleLogic.fillUnknownKoma(info);
+            // process.stdout.write("attempt(" + i + "/" + attempt + ") guessed history: " + h + "\n");
             evaledMoves = solver.solve(h);
+            if (evaledMoves.length === 0) {
+                throw new Error("no result!");
+            }
             lists.push(evaledMoves);
         }
         return Util.averageEvalScores(lists);
+    }
+
+    public static handsFromStr(handsStr: string): goita.Koma[][] {
+        const hands = new Array<goita.Koma[]>();
+        handsStr.split(",").forEach((s) => hands.push(goita.KomaArray.createFrom(s)));
+        return hands;
+    }
+
+    public static handsToStr(hands: goita.Koma[][]): string {
+        return hands.map((h) => goita.KomaArray.toString(h)).join(",");
+    }
+
+    /**
+     * it returns string like "12345678,1123,45,4561"
+     * get visible information about players hand
+     */
+    public static getOpenHands(info: goita.ThinkingInfo): string {
+        const myHand = Util.getMyHand(info);
+        const myField = Util.getMyOpenField(info);
+        const fields = Util.getFields(info);
+
+        // fill open koma list
+        const openHands = new Array<goita.Koma[]>();
+        for (let i = 0; i < goita.Define.maxPlayers; i++) {
+            openHands[i] = new Array<goita.Koma>();
+        }
+
+        // my hand and field(includes face-down)
+        myHand.forEach((k) => openHands[info.turn].push(k));
+        myField.forEach((k) => openHands[info.turn].push(k));
+
+        // the other players opened koma
+        for (let i = 1; i <= 3; i++) {
+            const no = goita.Util.shiftTurn(info.turn, i);
+            fields[no].forEach((k) => {
+                if (k.isHidden) {
+                    return;
+                }
+                openHands[no].push(k);
+            });
+        }
+        return SimpleLogic.handsToStr(openHands);
+    }
+
+    public static dequeueKomaFrom(list: goita.Koma[], ignoreShi: boolean): goita.Koma {
+        if (list.length === 0) {
+            throw new Error("list is empty");
+        }
+        if (ignoreShi && list.every((k) => k.isShi)) {
+            throw new Error("cannot ignore shi");
+        }
+        let k: goita.Koma = list.pop();
+        if (!ignoreShi || !k.isShi) {
+            return k;
+        }
+
+        while (k.isShi) {
+            list.unshift(k);
+            k = list.pop();
+        }
+        return k;
+    }
+
+    public static removeFrom(list: goita.Koma[], koma: goita.Koma): void {
+        const i = list.indexOf(koma);
+        if (i < 0) {
+            throw new Error("target koma is not in the list");
+        }
+        list.splice(i, 1);
+    }
+
+    public static getHiddenHands(info: goita.ThinkingInfo, openHandsStr: string, unknownListStr: string): string {
+        const openHands = SimpleLogic.handsFromStr(openHandsStr);
+        const openList = openHands[0].concat(openHands[1], openHands[2], openHands[3]);
+        let unknownList = goita.KomaArray.createFrom(unknownListStr);
+
+        const hiddenHands = new Array<goita.Koma[]>();
+
+        // shi limit
+        const shiLimitList = new Array<number>();
+        for (let i = 0; i < goita.Define.maxPlayers; i++) {
+            let shiLimit = 4;
+            if (info.yakuInfo.some((yi) => yi.playerNo === i)) {
+                shiLimit = 5;
+            }
+            shiLimitList[i] = shiLimit;
+        }
+
+        while (true) {
+            // initialize hidden hands
+            for (let i = 0; i < 4; i++) {
+                hiddenHands[i] = new Array<goita.Koma>();
+            }
+
+            // fill shi to goshi player.
+            for (let i = 0; i < shiLimitList.length; i++) {
+                const limit = shiLimitList[i];
+                if (limit === 5) {
+                    const numberToAdd = limit - goita.KomaArray.count(openHands[i], goita.Koma.shi);
+                    for (let c = 0; c < numberToAdd; c++) {
+                        SimpleLogic.removeFrom(unknownList, goita.Koma.shi);
+                        hiddenHands[i].push(goita.Koma.shi);
+                    }
+                }
+            }
+
+            // fill everyone's hand randomly
+            try {
+                for (let i = 0; i < goita.Define.maxPlayers; i++) {
+                    const oh = openHands[i];
+                    const hh = hiddenHands[i];
+                    while ((oh.length + hh.length) < goita.Define.maxFieldLength) {
+                        let k: goita.Koma;
+                        const currentShiCount = goita.KomaArray.count(oh, goita.Koma.shi) + goita.KomaArray.count(hh, goita.Koma.shi);
+                        k = SimpleLogic.dequeueKomaFrom(unknownList, currentShiCount >= shiLimitList[i]);
+                        hh.push(k);
+                    }
+                }
+            } catch (ex) {
+                // re-arange hand
+
+            }
+
+            if (unknownList.length === 0) {
+                break;
+            } else {
+                // initialize unknownlist
+                unknownList = goita.KomaArray.createFrom(unknownListStr);
+                goita.Util.shuffle(unknownList);
+            }
+        }
+
+        return SimpleLogic.handsToStr(hiddenHands);
+    }
+
+    public static selectFaceDownKomaFromHiddenHand(hiddenHand: goita.Koma[]): goita.Koma {
+        const len = hiddenHand.length;
+        if (len === 0) {
+            throw new Error("hidden hand must contain at least 1 koma");
+        }
+        const i = goita.Util.rand.integer(0, len - 1);
+        return hiddenHand.splice(i, 1)[0];
     }
 
     /**
@@ -206,69 +353,72 @@ export class SimpleLogic {
      * @returns history string
      */
     public static fillUnknownKoma(info: goita.ThinkingInfo): string {
-        const myHand = Util.getMyHand(info);
-        const myField = Util.getMyOpenField(info);
-        const fields = Util.getFields(info);
 
-        const openList = new Array<goita.Koma>();
-        myHand.forEach((k) => openList.push(k));
-        myField.forEach((k) => openList.push(k));
-
-        for (let i = 1; i <= 3; i++) {
-            const no = goita.Util.shiftTurn(info.turn, i);
-            fields[no].forEach((k) => {
-                if (k.equals(goita.Koma.hidden)) {
-                    return;
-                }
-                openList.push(k);
-            });
-        }
+        const openHandsStr = SimpleLogic.getOpenHands(info);
+        const openHands = SimpleLogic.handsFromStr(openHandsStr);
+        const openList = openHands[0].concat(openHands[1], openHands[2], openHands[3]);
 
         const unknownList = SimpleLogic.getDiffKomaList(openList);
-
         goita.Util.shuffle(unknownList);
 
-        const hands = new Array<goita.Koma[]>();
-        for (let i = 0; i < 4; i++) {
-            if (i === info.turn) {
-                hands[i] = myHand.concat(myField);
-            } else {
-                hands.push(new Array<goita.Koma>());
-            }
-        }
+        const unknownListStr = goita.KomaArray.toString(unknownList);
 
+        const hiddenHandsStr = SimpleLogic.getHiddenHands(info, openHandsStr, unknownListStr);
+        const hiddenHands = SimpleLogic.handsFromStr(hiddenHandsStr);
+
+        const facedownHands = new Array<goita.Koma[]>();
+        for (let i = 0; i < goita.Define.maxPlayers; i++) {
+            facedownHands[i] = new Array<goita.Koma>();
+        }
         const moves = goita.BoardHistory.parseMoveHistory(info.history.split(","));
-
-        // take face down koma into owner's hand
+        // choose face down koma from owner's hiddenHand
+        // TODO: AI can select a koma most likely to face-down
         for (const m of moves) {
-            if (!m.pass) {
-                if (m.block.equals(goita.Koma.hidden)) {
-                    const k = unknownList.pop();
-                    // assign chosen koma as face down
-                    m.block = k;
-                    hands[m.no].push(k);
-                } else {
-                    hands[m.no].push(m.block);
-                }
-                hands[m.no].push(m.attack);
+            if (m.pass || !m.block.isHidden) {
+                continue;
             }
+            // choose randomly.
+            const k = SimpleLogic.selectFaceDownKomaFromHiddenHand(hiddenHands[m.no]);
+
+            // assign chosen koma as face down
+            m.block = k;
+            facedownHands[m.no].push(k);
         }
 
-        // fill everyone's hand
-        for (const h of hands) {
-            while (h.length < goita.Define.maxFieldLength) {
-                const k = unknownList.pop();
-                h.push(k);
+        const hands = Array<goita.Koma[]>();
+        for (let i = 0; i < goita.Define.maxPlayers; i++) {
+            hands[i] = new Array<goita.Koma>().concat(openHands[i], hiddenHands[i], facedownHands[i]);
+        }
+
+        // check #1. koma count in hand. if it's incorrect, retry filling koma
+        // TODO: detect occurance condition to debug
+        const komaMap = SimpleLogic.getKomaCountMap();
+        const handList = new Array<goita.Koma>().concat(hands[0], hands[1], hands[2], hands[3]);
+        let result = true;
+        for (const km of komaMap) {
+            if (km.count !== handList.filter((k) => k.value === km.key).length) {
+                result = false;
             }
+        }
+        if (!result) {
+            throw new Error("koma count in hand is incorrect");
         }
 
         // build history string
-        return SimpleLogic.buildHistoryString(hands, info.dealer, moves);
+        const guessedHistoryStr = SimpleLogic.buildHistoryString(hands, info.dealer, moves);
+
+        // check #2. if compare yakuInfo returns false, retry filling koma
+        const guessedBoard = goita.Board.createFromString(guessedHistoryStr);
+        if ((info.yakuInfo.length !== 0 && guessedBoard.yakuInfo.length !== 0) && (info.yakuInfo.length !== guessedBoard.yakuInfo.length || info.yakuInfo[0].playerNo !== guessedBoard.yakuInfo[0].playerNo || info.yakuInfo[0].yaku !== guessedBoard.yakuInfo[0].yaku)) {
+            throw new Error("incorrect yaku information");
+        }
+
+        // build history string
+        return guessedHistoryStr;
     }
 
-    public static getDiffKomaList(list: goita.Koma[]): goita.Koma[] {
-        const diff = new Array<goita.Koma>();
-        const komaCountMap: Array<{ key: string, count: number }> = [
+    public static getKomaCountMap(): Array<{ key: string, count: number }> {
+        return [
             { key: "1", count: 10 },
             { key: "2", count: 4 },
             { key: "3", count: 4 },
@@ -279,6 +429,11 @@ export class SimpleLogic {
             { key: "8", count: 1 },
             { key: "9", count: 1 },
         ];
+    }
+
+    public static getDiffKomaList(list: goita.Koma[]): goita.Koma[] {
+        const diff = new Array<goita.Koma>();
+        const komaCountMap = SimpleLogic.getKomaCountMap();
         for (const m of komaCountMap) {
             const k = goita.Koma.fromStr(m.key);
             const diffCount = m.count - goita.KomaArray.countExact(list, k);

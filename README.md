@@ -1,7 +1,11 @@
+Goita AI Sample
+===
+This sample shows how to implement Goita AI based on `goita-core`.
+
 [![Build Status](https://travis-ci.org/Goita/goita-ai-sample-js.svg?branch=master)](https://travis-ci.org/Goita/goita-ai-sample-js)
 
-# Using this module in other modules
-
+Using this module
+---
 - To use the `RandomAI` class in a TypeScript file -
 
 ```ts

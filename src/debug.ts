@@ -5,8 +5,7 @@ const h = "12345678,12345679,11112345,11112345,s1,116,263,331,411,1p,2p,3p,411,1
 const b = goita.Board.createFromString(h);
 const info = b.toThinkingInfo();
 const ai = new AI.SimpleAI();
-
-const ret = ai.evalMoves(info);
+ai.monteCarloAttempts = 1000;
 const stage = AI.SimpleLogic.detectStage(info);
 let s: string = "";
 switch (stage) {
@@ -28,6 +27,7 @@ switch (stage) {
 // tslint:disable-next-line:no-console
 console.log(s);
 
+const ret = ai.evalMoves(info);
 ret.sort((m1, m2) => m2.score - m1.score);
 for (const evm of ret) {
     // tslint:disable-next-line:no-console
