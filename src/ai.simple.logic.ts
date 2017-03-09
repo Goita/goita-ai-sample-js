@@ -156,36 +156,6 @@ export class SimpleLogic {
         return new goita.EvaluatedMove(move, score);
     }
 
-    public static getFirstMove(info: goita.ThinkingInfo): goita.Move {
-        Util.replaceGyokuToOu(info);
-        const myHand = Util.getMyHand(info);
-        const myHandMap = Util.getKomaCountMap(myHand);
-
-        // gon 4
-        if (myHandMap[goita.Koma.gon.value] >= 4) {
-            if (goita.KomaArray.count(myHand, goita.Koma.shi) > 0) {
-                return goita.Move.ofFaceDown(info.turn, goita.Koma.shi, goita.Koma.gon);
-            } else {
-                return goita.Move.ofFaceDown(info.turn, goita.Koma.gon, goita.Koma.gon);
-            }
-        }
-
-        // more than or equal to 4 shi
-        if (myHandMap[goita.Koma.shi.value] >= 4) {
-            return goita.Move.ofFaceDown(info.turn, goita.Koma.shi, goita.Koma.shi);
-        }
-
-        // double king
-        if (myHandMap[goita.Koma.ou.value] >= 2) {
-            // choose from other than king
-            const left = myHand.filter((k) => !k.isKing);
-
-            return SimpleLogic.basicFirstMoveSelect(info.turn, left);
-        }
-
-        return SimpleLogic.basicFirstMoveSelect(info.turn, myHand);
-    }
-
     /**
      * eval moves for ending stage, using Monte Carlo method and perfect search
      */
@@ -457,79 +427,5 @@ export class SimpleLogic {
             historyStr.push(m.toOpenString());
         }
         return historyStr.join(",");
-    }
-
-    private static basicFirstMoveSelect(turn: number, hand: goita.Koma[]): goita.Move {
-        const myHandMap = Util.getKomaCountMap(hand);
-
-        const sbgkgkh = [goita.Koma.shi, goita.Koma.bakko, goita.Koma.gin, goita.Koma.kin, goita.Koma.gon, goita.Koma.kaku, goita.Koma.hisha];
-        const gbgk = [goita.Koma.gon, goita.Koma.bakko, goita.Koma.gin, goita.Koma.kin];
-        const bgk = [goita.Koma.bakko, goita.Koma.gin, goita.Koma.kin];
-        const kh = [goita.Koma.kaku, goita.Koma.hisha];
-
-        for (const k of gbgk) {
-            if (myHandMap[k.value] >= 4) {
-                return goita.Move.ofFaceDown(turn, k, k);
-            }
-        }
-
-        for (const k of kh) {
-            if (myHandMap[k.value] >= 2) {
-                if (myHandMap[goita.Koma.shi.value] >= 1) {
-                    return goita.Move.ofFaceDown(turn, goita.Koma.shi, k);
-                }
-                for (const k2 of bgk) {
-                    if (myHandMap[k2.value] >= 1) {
-                        return goita.Move.ofFaceDown(turn, k2, k);
-                    }
-                }
-            }
-        }
-
-        for (const k of gbgk) {
-            if (myHandMap[k.value] >= 3) {
-                if (myHandMap[goita.Koma.shi.value] >= 1) {
-                    return goita.Move.ofFaceDown(turn, goita.Koma.shi, k);
-                }
-                for (const k2 of gbgk) {
-                    if (myHandMap[k2.value] === 2) {
-                        return goita.Move.ofFaceDown(turn, k2, k);
-                    }
-                }
-            }
-        }
-
-        for (const k of gbgk) {
-            if (myHandMap[k.value] >= 2) {
-                if (myHandMap[goita.Koma.shi.value] >= 1) {
-                    return goita.Move.ofFaceDown(turn, goita.Koma.shi, k);
-                }
-                for (const k2 of gbgk) {
-                    if (myHandMap[k2.value] === 2) {
-                        return goita.Move.ofFaceDown(turn, k2, k);
-                    }
-                }
-                for (const k2 of gbgk.reverse()) {
-                    if (myHandMap[k2.value] === 1) {
-                        return goita.Move.ofFaceDown(turn, k2, k);
-                    }
-                }
-            }
-        }
-
-        // haccho-bari
-        for (const k of kh) {
-            if (myHandMap[k.value] === 1) {
-                for (const k2 of sbgkgkh) {
-                    if (myHandMap[k.value] >= 1) {
-                        return goita.Move.ofFaceDown(turn, k2, k);
-                    }
-                }
-            }
-        }
-
-        // finallay, random pick
-        const randKomas = Util.chooseUniqueItemsOfList(hand, 2);
-        return goita.Move.ofFaceDown(turn, randKomas[0], randKomas[1]);
     }
 }
