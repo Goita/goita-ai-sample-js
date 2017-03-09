@@ -1,8 +1,15 @@
 Goita AI Sample
 ===
-This sample shows how to implement Goita AI based on `goita-core`.
+This sample shows how to implement Goita AI based on [`goita-core`](https://github.com/Goita/goita-core-js).
 
 [![Build Status](https://travis-ci.org/Goita/goita-ai-sample-js.svg?branch=master)](https://travis-ci.org/Goita/goita-ai-sample-js)
+
+Install
+---
+
+```
+npm install goita-ai-sample
+```
 
 Using this module
 ---
