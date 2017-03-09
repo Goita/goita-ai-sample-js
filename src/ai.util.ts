@@ -1,7 +1,7 @@
 import * as goita from "goita-core";
 export class Util {
 
-    public static chooseUniqueItemsOfList<T extends number | string | object>(list: T[], choiceCount: number): T[] {
+    public static chooseUniqueItemsOfList<T extends number | string>(list: T[], choiceCount: number): T[] {
         const indexList = new Array<number>();
         for (let i = 0; i < list.length; i++) {
             indexList.push(i);
